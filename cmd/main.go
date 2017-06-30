@@ -2,14 +2,13 @@ package main
 
 import (
 	"cms"
-	"os"
+	"net/http"
 )
 
 func main() {
-	p := &cms.Page{
-		Title: "Hello, World!",
-		Content: "Body of the web page",
-	}
-
-	cms.Tmpl.ExecuteTemplate(os.Stdout, "index", p)
+	http.HandleFunc("/", cms.ServerIndex)
+	http.HandleFunc("/new", cms.HandleNew)
+	http.HandleFunc("/page/", cms.ServePage)
+	http.HandleFunc("/post/", cms.ServePost)
+	http.ListenAndServe(":3000", nil)
 }
