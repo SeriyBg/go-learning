@@ -2,8 +2,8 @@ package cms
 
 import (
 	"net/http"
-	"time"
 	"strings"
+	"time"
 )
 
 func HandleNew(w http.ResponseWriter, r *http.Request) {
@@ -16,10 +16,16 @@ func HandleNew(w http.ResponseWriter, r *http.Request) {
 		contentType := r.FormValue("content-type")
 		r.ParseForm()
 		if contentType == "page" {
-			Tmpl.ExecuteTemplate(w, "page", &Page{
+			p := &Page{
 				Title:   title,
 				Content: content,
-			})
+			}
+			_, err := CreatePage(p)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			Tmpl.ExecuteTemplate(w, "page", p)
 			return
 		}
 		if contentType == "post" {
@@ -65,15 +71,22 @@ func ServerIndex(w http.ResponseWriter, r *http.Request) {
 func ServePage(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimLeft(r.URL.Path, "/page/")
 	if path == "" {
-		http.NotFound(w, r)
+		pages, err := GetPages()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		Tmpl.ExecuteTemplate(w, "pages", pages)
 		return
 	}
-	p := &Page{
-		Title: strings.ToTitle(path),
-		Content: "Here is my page",
+
+	page, err := GetPage(path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
 	}
 
-	Tmpl.ExecuteTemplate(w, "page", p)
+	Tmpl.ExecuteTemplate(w, "page", page)
 }
 
 func ServePost(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +97,7 @@ func ServePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := &Post{
-		Title: strings.ToTitle(path),
+		Title:   strings.ToTitle(path),
 		Content: "Here is my post",
 	}
 
